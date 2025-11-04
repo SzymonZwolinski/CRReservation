@@ -2,12 +2,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:CRReservation.MOBILE"
              
-             xmlns:ui="clr-namespace:CRReservation.COMMON.Components;assembly=CRReservation.COMMON"
+             xmlns:ui="clr-namespace:CRReservation.COMMON;assembly=CRReservation.COMMON"
              
              x:Class="CRReservation.MOBILE.MainPage"
              BackgroundColor="{DynamicResource PageBackgroundColor}">
 
-    <BlazorWebView HostPage="_content/CRReservation.COMMON/wwwroot/index.html">
+    <BlazorWebView HostPage="wwwroot/index.html">
 
         <BlazorWebView.RootComponents>
             <RootComponent Selector="#app" ComponentType="{x:Type ui:Routes}" />
