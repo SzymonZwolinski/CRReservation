@@ -1,15 +1,32 @@
 ﻿@using CRReservation.COMMON.Components.Layout
+@using CRReservation.COMMON.Services
 @using Microsoft.AspNetCore.Components.Routing
+@inject UserStateService UserStateService
 
-<Router AppAssembly="@typeof(Routes).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-    </Found>
-    <NotFound>
-        <PageTitle>Not found</PageTitle>
-        <LayoutView Layout="@typeof(MainLayout)">
-            <p role="alert">Sorry, there's nothing at this address.</p>
-        </LayoutView>
-    </NotFound>
-</Router>
+<CascadingValue Value="UserStateService.CurrentState" Name="UserState">
+    <Router AppAssembly="@typeof(Routes).Assembly">
+        <Found Context="routeData">
+            <LayoutView Layout="@typeof(MainLayout)">
+                <RouteView RouteData="@routeData"  />
+            </LayoutView>
+        </Found>
+        <NotFound>
+            <PageTitle>Nie znaleziono</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p role="alert">Fest lipa. Niy mōmy takij strōny.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingValue>
+
+@code {
+    protected override void OnInitialized()
+    {
+        UserStateService.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        UserStateService.OnChange -= StateHasChanged;
+    }
+}

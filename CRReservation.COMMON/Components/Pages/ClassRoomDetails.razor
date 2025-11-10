@@ -1,0 +1,80 @@
+﻿@page "/classroom/{id}"
+@using CRReservation.COMMON.Models
+
+<h3>Szczegōły Sali</h3>
+
+<div class="card mb-3">
+	<div class="card-body">
+		@if (classRoom == null)
+		{
+			<p>Ładowanie danych sali...</p>
+		}
+		else
+		{
+			<h5 class="card-title">@classRoom.Name</h5>
+			<p class="card-text">Pojemność: @classRoom.Capacity</p>
+			@if (!string.IsNullOrEmpty(classRoom.Notes))
+			{
+				<p class="card-text">Notatki: @classRoom.Notes</p>
+			}
+			<p class="card-text">
+				Status:
+				@if (classRoom.IsForUse)
+				{
+					<span class="text-success">Dostępna do użytku</span>
+				}
+				else
+				{
+					<span class="text-danger">Niedostępna do użytku</span>
+				}
+			</p>
+		}
+	</div>
+</div>
+
+<hr />
+
+<h4>Rezerwacyje (Wybrany Okres)</h4>
+
+@if (reservations.Count == 0)
+{}
+else
+{
+	<table class="table table-striped">
+		<thead>
+			<tr>
+				<th>Użytkownik</th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var res in reservations)
+			{
+				<tr>
+					<td>@res.ReservedBy</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}
+
+@code {
+	[Parameter]
+	public int Id { get; set; }
+
+	private ClassRoom classRoom;
+
+	private List<Reservation> reservations = new();
+
+	public ClassRoomDetails()
+	{
+		//TODO: pobierz dane o sali z backedn
+
+		classRoom = new ClassRoom(Id, "test", 25, true, "siema");
+	}
+
+	public void LoadReservations()
+	{
+		//TODO: pobierz dane o rezerwacjach z danego okresu
+
+	}
+}

@@ -1,17 +1,43 @@
-﻿@inherits LayoutComponentBase
+﻿@using CRReservation.COMMON.Services
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+@inherits LayoutComponentBase
+@inject UserStateService UserStateService
+@inject NavigationManager Navigation
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+@if (UserStateService.CurrentState.IsLoggedIn == false && !IsPublicPage())
+{
+    <RedirectToLogin />
+}
+else
+{
+    <div class="page">
+        <div class="sidebar">
+            <NavMenu />
         </div>
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
+        <main>
+            <article class="content px-4">
+                @Body
+            </article>
+        </main>
+    </div>
+}
+
+@code {
+    private bool IsPublicPage()
+    {
+        string currentUri = Navigation.ToBaseRelativePath(Navigation.Uri).ToLowerInvariant();
+
+        return currentUri == "login" || currentUri == ""; 
+    }
+
+    protected override void OnInitialized()
+    {
+        UserStateService.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        UserStateService.OnChange -= StateHasChanged;
+    }
+}

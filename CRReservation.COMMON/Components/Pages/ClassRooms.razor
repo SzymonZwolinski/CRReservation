@@ -1,0 +1,42 @@
+﻿@page "/classrooms"
+@using CRReservation.COMMON.Models
+
+<h1>Lista sal:</h1>
+@foreach(var classRoom in classRooms)
+{
+	<div class="card mb-3">
+		<div class="card-body">
+			<h5 class="card-title">@classRoom.Name</h5>
+			<p class="card-text">Pojemność: @classRoom.Capacity</p>
+			@if (!string.IsNullOrEmpty(classRoom.Notes))
+			{
+				<p class="card-text">Notatki: @classRoom.Notes</p>
+			}
+			<p class="card-text">
+				Status: 
+				@if (classRoom.IsForUse)
+				{
+					<span class="text-success">Dostępna do użytku</span>
+				}
+				else
+				{
+					<span class="text-danger">Niedostępna do użytku</span>
+				}
+			</p>
+		</div>
+	</div>
+
+}
+
+@code {
+	private readonly List<ClassRoom> classRooms;
+	public ClassRooms()
+	{
+		classRooms = new()
+		{
+			new ClassRoom { Id = 1, Name = "Sala 101", Capacity = 30, Notes = "tes", IsForUse = true  },
+			new ClassRoom { Id = 2, Name = "Sala 202", Capacity = 25, IsForUse = false },
+			new ClassRoom { Id = 3, Name = "Sala 303", Capacity = 20, IsForUse = true }
+		};
+	}
+}
