@@ -3,22 +3,114 @@
 
 <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CRReservation.WEB</title>
     <base href="/" />
+
+    <!-- Bootstrap CSS z COMMON -->
     <link rel="stylesheet" href="_content/CRReservation.COMMON/css/bootstrap/bootstrap.min.css" />
+
+    <!-- App CSS z COMMON -->
     <link href="_content/CRReservation.COMMON/css/app.css" rel="stylesheet" />
 
+    <!-- CSS Isolation - style scoped dla komponentów z COMMON -->
+    <link href="_content/CRReservation.COMMON/CRReservation.COMMON.bundle.scp.css" rel="stylesheet" />
+
+    <!-- CSS Isolation - style scoped dla komponentów z WEB (jeśli istnieją) -->
+    <link href="CRReservation.WEB.styles.css" rel="stylesheet" />
+
+    <style>
+        /* Loading spinner */
+        #app {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #1b6ec2;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <div id="app">Loading...</div>
+    <div id="app">
+        <div style="text-align: center;">
+            <div class="loading-spinner" style="margin: 0 auto;"></div>
+            <p style="margin-top: 20px; color: #1b6ec2;">Ładowanie aplikacji...</p>
+        </div>
+    </div>
 
     <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="" class="reload">Reload</a>
-        <a class="dismiss">🗙</a>
+        <strong>⚠️ Wystąpił błąd:</strong>
+        <div id="blazor-error-details" style="margin-top: 10px; font-family: monospace; font-size: 12px;">
+            An unhandled error has occurred.
+        </div>
+        <div style="margin-top: 10px;">
+            <a href="" class="reload" style="margin-right: 10px;">🔄 Reload</a>
+            <a class="dismiss" style="cursor: pointer;">🗙 Dismiss</a>
+        </div>
     </div>
+
     <script src="_framework/blazor.webassembly.js"></script>
+
+    <script>
+        // Szczegółowe logowanie błędów
+        window.addEventListener('error', function (event) {
+            console.error('🔴 JavaScript Error:', event.error);
+            showDetailedError(event.error);
+        });
+
+        window.addEventListener('unhandledrejection', function (event) {
+            console.error('🔴 Promise Rejection:', event.reason);
+            showDetailedError(event.reason);
+        });
+
+        function showDetailedError(error) {
+            const errorUI = document.getElementById('blazor-error-ui');
+            const errorDetails = document.getElementById('blazor-error-details');
+
+            if (errorUI && errorDetails) {
+                let errorMessage = '';
+
+                if (error) {
+                    errorMessage += 'Message: ' + (error.message || error.toString()) + '\n\n';
+
+                    if (error.stack) {
+                        errorMessage += 'Stack Trace:\n' + error.stack;
+                    }
+                }
+
+                errorDetails.textContent = errorMessage;
+                errorUI.style.display = 'block';
+            }
+        }
+
+        // Dismiss button handler
+        document.addEventListener('DOMContentLoaded', function () {
+            const dismissBtn = document.querySelector('#blazor-error-ui .dismiss');
+            if (dismissBtn) {
+                dismissBtn.addEventListener('click', function () {
+                    document.getElementById('blazor-error-ui').style.display = 'none';
+                });
+            }
+        });
+
+        console.log('🚀 Blazor WebAssembly starting...');
+        console.log('📁 Looking for CSS at: _content/CRReservation.COMMON/css/');
+    </script>
 </body>
 
 </html>

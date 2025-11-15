@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using CRReservation.COMMON;
+using CRReservation.COMMON.DependencyInjection;
 
 namespace CRReservation.MOBILE
 {
@@ -14,7 +15,7 @@ namespace CRReservation.MOBILE
 				{
 					fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
 				});
-
+			DependencyInjection.InicializeDependencyInjection(builder.Services);
 			builder.Services.AddMauiBlazorWebView();
 
 #if DEBUG
