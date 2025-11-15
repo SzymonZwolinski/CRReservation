@@ -20,8 +20,8 @@
     <link href="CRReservation.WEB.styles.css" rel="stylesheet" />
 
     <style>
-        /* Loading spinner */
-        #app {
+        /* Loading spinner - tylko gdy app się ładuje */
+        #app:empty {
             display: flex;
             justify-content: center;
             align-items: center;
@@ -41,6 +41,35 @@
             to {
                 transform: rotate(360deg);
             }
+        }
+
+        /* FIX: Wymuszenie widoczności sidebaru na większych ekranach */
+        @media (min-width: 641px) {
+            .nav-scrollable {
+                display: block !important;
+            }
+        }
+
+        /* FIX: Layout dla page - flex row zamiast column */
+        .page {
+            position: relative;
+            display: flex;
+            flex-direction: row !important;
+            min-height: 100vh;
+        }
+
+        /* FIX: Sidebar powinien być po lewej */
+        .sidebar {
+            background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%) !important;
+            width: 250px !important;
+            height: 100vh !important;
+            position: sticky !important;
+            top: 0 !important;
+        }
+
+        /* FIX: Main content */
+        main {
+            flex: 1 !important;
         }
     </style>
 </head>

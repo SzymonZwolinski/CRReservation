@@ -78,12 +78,20 @@
             color: white;
         }
 
+/* ZMIANA: Menu widoczne na ma³ych ekranach (mo¿na klikn¹æ checkbox aby ukryæ) */
 .nav-scrollable {
-    display: none;
+    display: block;
 }
 
-.navbar-toggler:checked ~ .nav-scrollable {
-    display: block;
+/* Opcjonalnie: ukryj menu domyœlnie tylko na bardzo ma³ych ekranach */
+@media (max-width: 480px) {
+    .nav-scrollable {
+        display: none;
+    }
+
+    .navbar-toggler:checked ~ .nav-scrollable {
+        display: block;
+    }
 }
 
 @media (min-width: 641px) {
