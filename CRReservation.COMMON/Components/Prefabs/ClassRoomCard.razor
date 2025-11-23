@@ -1,0 +1,36 @@
+﻿@using CRReservation.COMMON.Models
+@inject NavigationManager Navigation
+
+<div class="card mb-3" onclick="@GoToClassDetails">
+	<div class="card-body">
+		<p>@classRoom.Id </p>
+		<h5 class="card-title">@classRoom.Name</h5>
+		<p class="card-text">Pojemność: @classRoom.Capacity</p>
+		@if (!string.IsNullOrEmpty(classRoom.Notes))
+		{
+			<p class="card-text">Notatki: @classRoom.Notes</p>
+		}
+		<p class="card-text">
+			Status:
+			@if (classRoom.IsForUse)
+			{
+				<span class="text-success">Dostępna do użytku</span>
+			}
+			else
+			{
+				<span class="text-danger">Niedostępna do użytku</span>
+			}
+		</p>
+	</div>
+</div>
+@code {
+	[Parameter]
+	public ClassRoom classRoom { get; set; }
+	[Parameter]
+	public bool EnableOnClick { get; set; } = true;
+
+	public void GoToClassDetails()
+	{
+		Navigation.NavigateTo($"/classroom/{classRoom.Id}");
+	}
+}
