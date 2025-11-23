@@ -27,6 +27,11 @@
         <!-- App Identifier -->
         <ApplicationId>com.companyname.crreservation.mobile</ApplicationId>
 
+		<!-- WYŁĄCZENIE OSTRZEŻEŃ EOL -->
+		<CheckEolWorkloads>false</CheckEolWorkloads>
+		<CheckEolTargetFramework>false</CheckEolTargetFramework>
+		<NoWarn>$(NoWarn);NETSDK1138</NoWarn>
+
         <!-- Versions -->
         <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
         <ApplicationVersion>1</ApplicationVersion>
