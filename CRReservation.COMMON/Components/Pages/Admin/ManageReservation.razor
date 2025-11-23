@@ -1,0 +1,115 @@
+﻿@page "/admin/reservations"
+@using CRReservation.COMMON.Models
+@using CRReservation.COMMON.Enums
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Administrator")]
+@inject NavigationManager NavigationManager
+
+<h3>Zarządzanie Rezerwacjami</h3>
+
+<div class="card mb-4">
+    <div class="card-header">Filtruj</div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <label class="form-label">Data</label>
+                <input type="date" class="form-control" @bind="FilterDate" />
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button class="btn btn-primary" @onclick="FilterReservations">Pokaż</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Sala</th>
+                <th>Użytkownik</th>
+                <th>Data Od</th>
+                <th>Data Do</th>
+                <th>Status</th>
+                <th>Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var reservation in FilteredReservations)
+            {
+                    <tr>
+                        <td>@reservation.Id</td>
+                        <td>@reservation.ClassRoomName</td>
+                        <td>@reservation.ReservedBy</td>
+                        <td>@reservation.StartDate.ToShortDateString() @reservation.StartDate.ToShortTimeString()</td>
+                        <td>@reservation.EndDate.ToShortDateString() @reservation.EndDate.ToShortTimeString()</td>
+                        <td>
+                        @switch (reservation.Status)
+                        {
+                            case ReservationStatus.Pending:
+                                            <span class="badge bg-warning text-dark">Oczekująca</span>
+                                break;
+                            case ReservationStatus.Approved:
+                                            <span class="badge bg-success">Zatwierdzona</span>
+                                break;
+                            case ReservationStatus.Revoked:
+                                            <span class="badge bg-danger">Odwołana</span>
+                                break;
+                        }
+                        </td>
+                        <td>
+                        @if (reservation.Status == ReservationStatus.Pending)
+                        {
+                                    <button class="btn btn-success btn-sm me-2" @onclick="() => ApproveReservation(reservation)">Zatwierdź</button>
+                        }
+                        @if (reservation.Status == ReservationStatus.Approved || reservation.Status == ReservationStatus.Pending)
+                        {
+                                    <button class="btn btn-danger btn-sm" @onclick="() => RevokeReservation(reservation)">Odwołaj</button>
+                        }
+                        </td>
+                    </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private DateTime FilterDate { get; set; } = DateTime.Today;
+    private List<Reservation> AllReservations = new();
+    private List<Reservation> FilteredReservations = new();
+
+    protected override void OnInitialized()
+    {
+        // Mock Data
+        AllReservations = new List<Reservation>
+        {
+            new Reservation { Id = 1, ClassRoomId = 101, ClassRoomName = "Sala 101", ReservedBy = "student1", StartDate = DateTime.Today.AddHours(10), EndDate = DateTime.Today.AddHours(12), Status = ReservationStatus.Pending },
+            new Reservation { Id = 2, ClassRoomId = 102, ClassRoomName = "Aula A", ReservedBy = "prowadzacy1", StartDate = DateTime.Today.AddHours(14), EndDate = DateTime.Today.AddHours(16), Status = ReservationStatus.Approved },
+            new Reservation { Id = 3, ClassRoomId = 101, ClassRoomName = "Sala 101", ReservedBy = "student2", StartDate = DateTime.Today.AddDays(1).AddHours(9), EndDate = DateTime.Today.AddDays(1).AddHours(11), Status = ReservationStatus.Pending },
+             new Reservation { Id = 4, ClassRoomId = 103, ClassRoomName = "Lab Komp", ReservedBy = "admin", StartDate = DateTime.Today.AddHours(8), EndDate = DateTime.Today.AddHours(10), Status = ReservationStatus.Revoked }
+        };
+
+        FilterReservations();
+    }
+
+    private void FilterReservations()
+    {
+        // Filter by selected date (ignoring time for the filter comparison)
+        FilteredReservations = AllReservations
+            .Where(r => r.StartDate.Date == FilterDate.Date)
+            .ToList();
+    }
+
+    private void ApproveReservation(Reservation reservation)
+    {
+        reservation.Status = ReservationStatus.Approved;
+        // TODO: Call backend service to save
+    }
+
+    private void RevokeReservation(Reservation reservation)
+    {
+        reservation.Status = ReservationStatus.Revoked;
+        // TODO: Call backend service to save
+    }
+}
