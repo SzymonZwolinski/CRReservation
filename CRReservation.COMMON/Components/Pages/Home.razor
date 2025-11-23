@@ -1,14 +1,157 @@
 ﻿@page "/"
 @using CRReservation.COMMON.States
+@using CRReservation.COMMON.Enums.UserEnums
 
 @if (UserState is null || !UserState.IsLoggedIn)
 {
-	<h1>Witaj w Systemie rezerwacji sal</h1>
-	<p>Proszę się zalogować, aby kontynuować.</p>
+	<div class="container mt-5 text-center">
+		<h1 class="display-4">Witaj w Systemie rezerwacji sal</h1>
+		<p class="lead">Proszę się zalogować, aby kontynuować.</p>
+	</div>
 	return;
 }
-<h1>Witaj w Systemie rezerwacji sal <strong>@UserState.UserName</strong></h1>
-<p>Twoje aktualne uprawnienia to: <strong>@UserState.Role</strong></p>
+
+<div class="container mt-4">
+	<div class="d-flex justify-content-between align-items-center mb-4">
+		<h1>Witaj, <strong>@UserState.UserName</strong>!</h1>
+		<span class="badge bg-secondary fs-6">@UserState.Role</span>
+	</div>
+
+	@switch (UserState.Role)
+	{
+		case Role.Student:
+			@* Trial View *@
+			<div class="alert alert-info" role="alert">
+				<h4 class="alert-heading">Wersja Próbna</h4>
+				<p>Jako student masz ograniczony dostęp do systemu. Możesz przeglądać dostępne sale, ale rezerwacja wymaga potwierdzenia przez prowadzącego.</p>
+				<hr>
+				<p class="mb-0">Skontaktuj się z administratorem, aby uzyskać pełne uprawnienia.</p>
+			</div>
+
+			<div class="row">
+				<div class="col-md-6">
+					<div class="card mb-3">
+						<div class="card-body">
+							<h5 class="card-title">Dostępne Sale</h5>
+							<p class="card-text">Przeglądaj listę sal dostępnych do nauki własnej.</p>
+							<a href="/classrooms" class="btn btn-primary">Zobacz Sale</a>
+						</div>
+					</div>
+				</div>
+				<div class="col-md-6">
+					<div class="card mb-3">
+						<div class="card-body">
+							<h5 class="card-title">Moje Rezerwacje</h5>
+							<p class="card-text">Sprawdź status swoich próśb o rezerwację.</p>
+							<button class="btn btn-outline-primary" disabled>Wkrótce</button>
+						</div>
+					</div>
+				</div>
+			</div>
+			break;
+
+		case Role.Prowadzący:
+			@* Regular User View *@
+			<div class="card text-center mb-4 border-primary">
+				<div class="card-header bg-primary text-white">
+					Panel Prowadzącego
+				</div>
+				<div class="card-body">
+					<h5 class="card-title">Zarządzaj swoimi zajęciami</h5>
+					<p class="card-text">Szybki dostęp do najczęściej używanych funkcji.</p>
+					<a href="/classrooms" class="btn btn-primary me-2">Rezerwuj Salę</a>
+					<a href="#" class="btn btn-success">Mój Kalendarz</a>
+				</div>
+				<div class="card-footer text-muted">
+					Ostatnie logowanie: @DateTime.Now.ToShortDateString()
+				</div>
+			</div>
+
+			<div class="row">
+				<div class="col-md-4">
+					<div class="card h-100">
+						<div class="card-body">
+							<h6 class="card-subtitle mb-2 text-muted">Nadchodzące Rezerwacje</h6>
+							<p class="card-text">Masz 3 nadchodzące rezerwacje w tym tygodniu.</p>
+						</div>
+					</div>
+				</div>
+				<div class="col-md-4">
+					<div class="card h-100">
+						<div class="card-body">
+							<h6 class="card-subtitle mb-2 text-muted">Historia</h6>
+							<p class="card-text">Przeglądaj historię swoich rezerwacji z poprzednich semestrów.</p>
+						</div>
+					</div>
+				</div>
+				<div class="col-md-4">
+					<div class="card h-100">
+						<div class="card-body">
+							<h6 class="card-subtitle mb-2 text-muted">Zgłoszenia</h6>
+							<p class="card-text">Zgłoś problem techniczny z salą.</p>
+						</div>
+					</div>
+				</div>
+			</div>
+			break;
+
+		case Role.Administrator:
+			@* Admin View *@
+			<div class="row mb-4">
+				<div class="col-12">
+					<div class="card bg-dark text-white">
+						<div class="card-body">
+							<h3 class="card-title"><i class="bi bi-speedometer2"></i> Panel Administratora</h3>
+							<p class="card-text">Pełna kontrola nad systemem rezerwacji.</p>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="row g-3">
+				<div class="col-md-3">
+					<div class="card text-white bg-danger h-100">
+						<div class="card-header">Zarządzanie Użytkownikami</div>
+						<div class="card-body">
+							<h5 class="card-title">Użytkownicy</h5>
+							<p class="card-text">Dodawaj, edytuj lub usuwaj konta użytkowników.</p>
+							<a href="/admin/create-user" class="btn btn-light btn-sm mt-2">Dodaj Użytkownika</a>
+						</div>
+					</div>
+				</div>
+				<div class="col-md-3">
+					<div class="card text-white bg-warning h-100 text-dark">
+						<div class="card-header">Zarządzanie Salami</div>
+						<div class="card-body">
+							<h5 class="card-title">Sale Wykładowe</h5>
+							<p class="card-text">Edytuj parametry sal, wyposażenie i dostępność.</p>
+							<a href="/admin/create-classroom" class="btn btn-dark btn-sm mt-2">Dodaj Salę</a>
+						</div>
+					</div>
+				</div>
+				<div class="col-md-3">
+					<div class="card text-white bg-success h-100">
+						<div class="card-header">Rezerwacje</div>
+						<div class="card-body">
+							<h5 class="card-title">Zarządzanie</h5>
+							<p class="card-text">Zatwierdzaj prośby i zarządzaj rezerwacjami.</p>
+							<a href="/admin/reservations" class="btn btn-light btn-sm mt-2">Zarządzaj</a>
+						</div>
+					</div>
+				</div>
+				<div class="col-md-3">
+					<div class="card text-white bg-info h-100">
+						<div class="card-header">Ustawienia</div>
+						<div class="card-body">
+							<h5 class="card-title">Konfiguracja</h5>
+							<p class="card-text">Globalne ustawienia systemu.</p>
+						</div>
+					</div>
+				</div>
+			</div>
+			break;
+	}
+</div>
 
 @code
 {

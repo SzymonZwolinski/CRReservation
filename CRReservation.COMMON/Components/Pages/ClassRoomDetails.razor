@@ -20,6 +20,16 @@
 <hr />
 
 <h4>Rezerwacyje (Wybrany Okres)</h4>
+<div class="row mb-3">
+	<div class="col-md-6">
+		<label class="form-label">Data od</label>
+		<input type="date" class="form-control" @bind="StartDate" />
+	</div>
+	<div class="col-md-6">
+		<label class="form-label">Data do</label>
+		<input type="date" class="form-control" @bind="EndDate" />
+	</div>
+</div>
 
 @if (reservations.Count == 0)
 {}
@@ -45,6 +55,8 @@ else
 @code {
 	[Parameter]
 	public int Id { get; set; }
+	private DateTime StartDate { get; set; } = DateTime.Today;
+	private DateTime EndDate { get; set; } = DateTime.Today.AddDays(7);
 
 	private ClassRoom classRoom;
 
