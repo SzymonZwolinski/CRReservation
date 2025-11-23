@@ -1,5 +1,6 @@
 ﻿@page "/classroom/{id}"
 @using CRReservation.COMMON.Models
+@using CRReservation.COMMON.Components.Prefabs
 
 <h3>Szczegōły Sali</h3>
 
@@ -11,23 +12,7 @@
 		}
 		else
 		{
-			<h5 class="card-title">@classRoom.Name</h5>
-			<p class="card-text">Pojemność: @classRoom.Capacity</p>
-			@if (!string.IsNullOrEmpty(classRoom.Notes))
-			{
-				<p class="card-text">Notatki: @classRoom.Notes</p>
-			}
-			<p class="card-text">
-				Status:
-				@if (classRoom.IsForUse)
-				{
-					<span class="text-success">Dostępna do użytku</span>
-				}
-				else
-				{
-					<span class="text-danger">Niedostępna do użytku</span>
-				}
-			</p>
+			<ClassRoomCard classRoom="classRoom" EnableOnClick="false" />
 		}
 	</div>
 </div>
