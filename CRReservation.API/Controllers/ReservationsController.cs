@@ -1,6 +1,7 @@
 using CRReservation.API.Data;
 using CRReservation.API.DTOs;
 using CRReservation.API.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,6 +20,7 @@ public class ReservationsController : ControllerBase
 
     // GET: api/Reservations
     [HttpGet]
+    [Authorize]
     public async Task<ActionResult<IEnumerable<ReservationDto>>> GetReservations()
     {
         var reservations = await _context.Reservations
@@ -67,6 +69,7 @@ public class ReservationsController : ControllerBase
 
     // POST: api/Reservations
     [HttpPost]
+    [Authorize(Policy = "CanCreateReservation")]
     public async Task<ActionResult<Reservation>> PostReservation(Reservation reservation)
     {
         _context.Reservations.Add(reservation);
@@ -77,6 +80,7 @@ public class ReservationsController : ControllerBase
 
     // PUT: api/Reservations/5
     [HttpPut("{id}")]
+    [Authorize]
     public async Task<IActionResult> PutReservation(int id, Reservation reservation)
     {
         if (id != reservation.Id)
@@ -107,6 +111,7 @@ public class ReservationsController : ControllerBase
 
     // DELETE: api/Reservations/5
     [HttpDelete("{id}")]
+    [Authorize]
     public async Task<IActionResult> DeleteReservation(int id)
     {
         var reservation = await _context.Reservations.FindAsync(id);

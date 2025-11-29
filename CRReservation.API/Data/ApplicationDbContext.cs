@@ -1,9 +1,11 @@
 using CRReservation.API.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRReservation.API.Data;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<int>, int>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -33,11 +35,9 @@ public class ApplicationDbContext : DbContext
         // Configure User entity
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(u => u.Id);
             entity.Property(u => u.FirstName).HasMaxLength(50).IsRequired();
             entity.Property(u => u.LastName).HasMaxLength(50).IsRequired();
-            entity.Property(u => u.Email).HasMaxLength(100).IsRequired();
-            entity.HasIndex(u => u.Email).IsUnique();
+            entity.Property(u => u.RoleName).HasMaxLength(20).IsRequired();
 
             entity.HasOne(u => u.Role)
                   .WithMany(r => r.Users)

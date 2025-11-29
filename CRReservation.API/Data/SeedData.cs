@@ -1,5 +1,6 @@
 using CRReservation.API.Models;
 using Microsoft.EntityFrameworkCore;
+using BCrypt.Net;
 
 namespace CRReservation.API.Data;
 
@@ -45,29 +46,41 @@ public static class SeedData
         await context.ClassRooms.AddRangeAsync(classRooms);
         await context.SaveChangesAsync();
 
-        // Seed Users
+        // Seed Users with hashed passwords
         var users = new[]
         {
             new User
             {
+                UserName = "jan.kowalski@example.com",
                 FirstName = "Jan",
                 LastName = "Kowalski",
                 RoleName = "admin",
-                Email = "jan.kowalski@example.com"
+                Email = "jan.kowalski@example.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"), // Hasło: admin123
+                EmailConfirmed = true,
+                SecurityStamp = Guid.NewGuid().ToString()
             },
             new User
             {
+                UserName = "anna.nowak@example.com",
                 FirstName = "Anna",
                 LastName = "Nowak",
                 RoleName = "prowadzacy",
-                Email = "anna.nowak@example.com"
+                Email = "anna.nowak@example.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("prowadzacy123"), // Hasło: prowadzacy123
+                EmailConfirmed = true,
+                SecurityStamp = Guid.NewGuid().ToString()
             },
             new User
             {
+                UserName = "piotr.wisniewski@example.com",
                 FirstName = "Piotr",
                 LastName = "Wiśniewski",
                 RoleName = "student",
-                Email = "piotr.wisniewski@example.com"
+                Email = "piotr.wisniewski@example.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("student123"), // Hasło: student123
+                EmailConfirmed = true,
+                SecurityStamp = Guid.NewGuid().ToString()
             }
         };
 

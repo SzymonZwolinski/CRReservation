@@ -1,5 +1,6 @@
 using CRReservation.API.Data;
 using CRReservation.API.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +19,7 @@ public class ClassRoomsController : ControllerBase
 
     // GET: api/ClassRooms
     [HttpGet]
+    [Authorize]
     public async Task<ActionResult<IEnumerable<ClassRoom>>> GetClassRooms()
     {
         return await _context.ClassRooms.ToListAsync();
@@ -39,6 +41,7 @@ public class ClassRoomsController : ControllerBase
 
     // POST: api/ClassRooms
     [HttpPost]
+    [Authorize(Policy = "CanManageRooms")]
     public async Task<ActionResult<ClassRoom>> PostClassRoom(ClassRoom classRoom)
     {
         _context.ClassRooms.Add(classRoom);
@@ -49,6 +52,7 @@ public class ClassRoomsController : ControllerBase
 
     // PUT: api/ClassRooms/5
     [HttpPut("{id}")]
+    [Authorize(Policy = "CanManageRooms")]
     public async Task<IActionResult> PutClassRoom(int id, ClassRoom classRoom)
     {
         if (id != classRoom.Id)
@@ -79,6 +83,7 @@ public class ClassRoomsController : ControllerBase
 
     // DELETE: api/ClassRooms/5
     [HttpDelete("{id}")]
+    [Authorize(Policy = "CanManageRooms")]
     public async Task<IActionResult> DeleteClassRoom(int id)
     {
         var classRoom = await _context.ClassRooms.FindAsync(id);

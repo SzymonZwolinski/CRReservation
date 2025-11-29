@@ -1,6 +1,7 @@
 using CRReservation.API.Data;
 using CRReservation.API.DTOs;
 using CRReservation.API.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,6 +20,7 @@ public class UsersController : ControllerBase
 
     // GET: api/Users
     [HttpGet]
+    [Authorize(Roles = "admin")]
     public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
     {
         var users = await _context.Users.ToListAsync();
@@ -63,6 +65,7 @@ public class UsersController : ControllerBase
 
     // POST: api/Users
     [HttpPost]
+    [Authorize(Roles = "admin")]
     public async Task<ActionResult<User>> PostUser(User user)
     {
         _context.Users.Add(user);
@@ -73,6 +76,7 @@ public class UsersController : ControllerBase
 
     // PUT: api/Users/5
     [HttpPut("{id}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> PutUser(int id, User user)
     {
         if (id != user.Id)
@@ -103,6 +107,7 @@ public class UsersController : ControllerBase
 
     // DELETE: api/Users/5
     [HttpDelete("{id}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> DeleteUser(int id)
     {
         var user = await _context.Users.FindAsync(id);

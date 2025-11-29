@@ -1,13 +1,13 @@
+using Microsoft.AspNetCore.Identity;
+
 namespace CRReservation.API.Models;
 
-public class User
+public class User : IdentityUser<int>
 {
-    public int Id { get; set; }
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
 
-    // Foreign key
+    // Foreign key - role name for our custom role system
     public string RoleName { get; set; } = string.Empty;
 
     // Navigation properties
