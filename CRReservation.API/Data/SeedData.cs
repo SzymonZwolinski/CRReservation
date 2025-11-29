@@ -115,7 +115,7 @@ public static class SeedData
         await context.UserGroups.AddRangeAsync(userGroups);
         await context.SaveChangesAsync();
 
-        // Seed Reservations
+        // Seed Reservations with different statuses
         var reservations = new[]
         {
             new Reservation
@@ -127,7 +127,7 @@ public static class SeedData
                 IsRecurring = false,
                 StartDateTime = DateTime.Parse("2025-12-01 10:00:00"),
                 EndDateTime = DateTime.Parse("2025-12-01 12:00:00"),
-                UserId = 2 // Anna Nowak
+                UserId = 2 // Anna Nowak (prowadzący)
             },
             new Reservation
             {
@@ -138,7 +138,17 @@ public static class SeedData
                 IsRecurring = true,
                 StartDateTime = DateTime.Parse("2025-12-02 14:00:00"),
                 EndDateTime = DateTime.Parse("2025-12-02 16:00:00"),
-                UserId = 2 // Anna Nowak
+                UserId = 3 // Piotr Wiśniewski (student)
+            },
+            new Reservation
+            {
+                Status = "odrzucona",
+                ClassRoomId = 1,
+                ReservationDate = DateTime.Parse("2025-12-03"),
+                IsRecurring = false,
+                StartDateTime = DateTime.Parse("2025-12-03 09:00:00"),
+                EndDateTime = DateTime.Parse("2025-12-03 11:00:00"),
+                UserId = 3 // Piotr Wiśniewski (student)
             }
         };
 

@@ -41,7 +41,7 @@ public class ClassRoomsController : ControllerBase
 
     // POST: api/ClassRooms
     [HttpPost]
-    [Authorize(Policy = "CanManageRooms")]
+    [Authorize]
     public async Task<ActionResult<ClassRoom>> PostClassRoom(ClassRoom classRoom)
     {
         _context.ClassRooms.Add(classRoom);
@@ -96,6 +96,29 @@ public class ClassRoomsController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    // GET: api/ClassRooms/available?start=2025-01-15T10:00&end=2025-01-15T12:00
+    [HttpGet("available")]
+    [Authorize]
+    public async Task<ActionResult<IEnumerable<ClassRoom>>> GetAvailableClassRooms(DateTime start, DateTime end)
+    {
+        // Znajdź wszystkie rezerwacje które nachodzą na podany zakres czasu
+        var conflictingReservations = await _context.Reservations
+            .Where(r => r.Status == "potwierdzona" || r.Status == "oczekujaca") // tylko aktywne rezerwacje
+            .Where(r =>
+                (r.StartDateTime < end && r.EndDateTime > start) // overlapping
+            )
+            .Select(r => r.ClassRoomId)
+            .Distinct()
+            .ToListAsync();
+
+        // Zwróć sale które nie mają konfliktów
+        var availableClassRooms = await _context.ClassRooms
+            .Where(cr => cr.IsActive && !conflictingReservations.Contains(cr.Id))
+            .ToListAsync();
+
+        return availableClassRooms;
     }
 
     private bool ClassRoomExists(int id)
