@@ -1,8 +1,20 @@
 ﻿@page "/classroom/{id}"
 @using CRReservation.COMMON.Models
 @using CRReservation.COMMON.Components.Prefabs
+@using CRReservation.COMMON.Services
+@inject IClassRoomService ClassRoomService
+@inject NavigationManager Navigation
+@using CRReservation.COMMON.States
 
-<h3>Szczegōły Sali</h3>
+<h3>Szczegóły Sali</h3>
+
+@if (!string.IsNullOrEmpty(ReservationMessage))
+{
+    <div class="alert @(ReservationSuccess ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert">
+        @ReservationMessage
+        <button type="button" class="btn-close" @onclick="ClearMessage" aria-label="Close"></button>
+    </div>
+}
 
 <div class="card mb-3">
 	<div class="card-body">
@@ -29,23 +41,36 @@
 		<label class="form-label">Data do</label>
 		<input type="date" class="form-control" @bind="EndDate" />
 	</div>
+	<div class="col-12 mt-2">
+		<button class="btn btn-primary" @onclick="LoadAvailableClassRooms">Sprawdź Dostępne Sale</button>
+		<button class="btn btn-success ms-2" @onclick="ReserveCurrentRoom">Rezerwuj Tę Salę</button>
+	</div>
 </div>
 
-@if (reservations.Count == 0)
-{}
+@if (availableClassRooms == null)
+{
+	<p>Wybierz daty i kliknij "Sprawdź Dostępne Sale".</p>
+}
+else if (!availableClassRooms.Any())
+{
+	<p>Brak dostępnych sal w wybranym terminie.</p>
+}
 else
 {
+	<h4>Dostępne sale</h4>
 	<table class="table table-striped">
 		<thead>
 			<tr>
-				<th>Użytkownik</th>
+				<th>Nazwa Sali</th>
+				<th>Pojemność</th>
 			</tr>
 		</thead>
 		<tbody>
-			@foreach (var res in reservations)
+			@foreach (var room in availableClassRooms)
 			{
 				<tr>
-					<td>@res.ReservedBy</td>
+					<td>@room.Name</td>
+					<td>@room.Capacity</td>
 				</tr>
 			}
 		</tbody>
@@ -58,20 +83,60 @@ else
 	private DateTime StartDate { get; set; } = DateTime.Today;
 	private DateTime EndDate { get; set; } = DateTime.Today.AddDays(7);
 
-	private ClassRoom classRoom;
+	private ClassRoom? classRoom;
+	private List<ClassRoom>? availableClassRooms;
 
-	private List<Reservation> reservations = new();
+    private string? ReservationMessage;
+    private bool ReservationSuccess;
 
-	public ClassRoomDetails()
+    [CascadingParameter]
+    public User UserState { get; set; }
+
+	protected override async Task OnInitializedAsync()
 	{
-		//TODO: pobierz dane o sali z backedn
-
-		classRoom = new ClassRoom(Id, "test", 25, true, "siema");
+		classRoom = await ClassRoomService.GetClassRoomAsync(Id);
 	}
 
-	public void LoadReservations()
+	public async Task LoadAvailableClassRooms()
 	{
-		//TODO: pobierz dane o rezerwacjach z danego okresu
-
+		availableClassRooms = (await ClassRoomService.GetAvailableClassRoomsAsync(StartDate, EndDate)).ToList();
 	}
+
+    public async Task ReserveCurrentRoom()
+    {
+        if (classRoom == null) return;
+
+        if (UserState == null || UserState.Id == 0)
+        {
+            ReservationSuccess = false;
+            ReservationMessage = "Musisz być zalogowany, aby dokonać rezerwacji.";
+            return;
+        }
+
+        var reservation = new Reservation
+        {
+            ClassRoomId = Id,
+            StartDateTime = StartDate,
+            EndDateTime = EndDate,
+            UserId = UserState.Id
+        };
+
+        var result = await ClassRoomService.ReserveClassRoomAsync(reservation);
+        
+        if (result)
+        {
+            ReservationSuccess = true;
+            ReservationMessage = "Rezerwacja zakończona sukcesem! Oczekuje na zatwierdzenie.";
+        }
+        else
+        {
+            ReservationSuccess = false;
+            ReservationMessage = "Nie udało się dokonać rezerwacji. Sala może być zajęta.";
+        }
+    }
+
+    private void ClearMessage()
+    {
+        ReservationMessage = null;
+    }
 }
