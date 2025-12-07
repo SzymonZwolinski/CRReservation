@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace CRReservation.API.DTOs;
+namespace CRReservation.COMMON.Models;
 
 public class LoginRequest
 {

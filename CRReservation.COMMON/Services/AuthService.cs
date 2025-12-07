@@ -1,4 +1,6 @@
 using CRReservation.COMMON.Enums.UserEnums;
+using CRReservation.COMMON.Models;
+using Microsoft.JSInterop;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -8,11 +10,13 @@ public class AuthService
 {
     private readonly HttpClient _httpClient;
     private readonly UserStateService _userStateService;
+    private readonly IJSRuntime _jsRuntime;
 
-    public AuthService(HttpClient httpClient, UserStateService userStateService)
+    public AuthService(HttpClient httpClient, UserStateService userStateService, IJSRuntime jsRuntime)
     {
         _httpClient = httpClient;
         _userStateService = userStateService;
+        _jsRuntime = jsRuntime;
     }
 
     public async Task<LoginResponse> LoginAsync(string email, string password)
@@ -30,7 +34,7 @@ public class AuthService
             if (response.IsSuccessStatusCode)
             {
                 var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
-                if (loginResponse?.Success == true && loginResponse.Token != null)
+                if (loginResponse?.Success == true && !string.IsNullOrEmpty(loginResponse.Token))
                 {
                     // Zapisz token w localStorage
                     await SaveTokenAsync(loginResponse.Token);
@@ -59,25 +63,30 @@ public class AuthService
 
     public async Task<string?> GetTokenAsync()
     {
-        // W Blazor można użyć JS interop do localStorage
-        // Na razie zwraca null - trzeba zaimplementować
-        return null;
+        try
+        {
+            return await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private async Task SaveTokenAsync(string token)
     {
-        // Implementacja localStorage przez JS interop
-        await Task.CompletedTask;
+        await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", token);
     }
 
     private async Task RemoveTokenAsync()
     {
-        // Implementacja usunięcia z localStorage
-        await Task.CompletedTask;
+        await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
     }
 
     private Role ParseRole(string roleName)
     {
+        if (string.IsNullOrEmpty(roleName)) return Role.Student;
+
         return roleName.ToLower() switch
         {
             "admin" => Role.Administrator,
@@ -88,22 +97,4 @@ public class AuthService
             _ => Role.Student
         };
     }
-}
-
-// DTOs dla API
-public class LoginRequest
-{
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-}
-
-public class LoginResponse
-{
-    public bool Success { get; set; }
-    public string Message { get; set; } = string.Empty;
-    public string Token { get; set; } = string.Empty;
-    public string Role { get; set; } = string.Empty;
-    public string UserName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public DateTime Expiration { get; set; }
 }

@@ -1,4 +1,4 @@
-namespace CRReservation.API.DTOs;
+namespace CRReservation.COMMON.Models;
 
 public class LoginResponse
 {

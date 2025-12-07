@@ -82,6 +82,15 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole("admin"));
 });
 
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowBlazorClient", builder =>
+        builder.WithOrigins("http://localhost:5087", "https://localhost:7199")
+               .AllowAnyMethod()
+               .AllowAnyHeader());
+});
+
 // Register services
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<AuthService>();
@@ -96,6 +105,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors("AllowBlazorClient");
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
