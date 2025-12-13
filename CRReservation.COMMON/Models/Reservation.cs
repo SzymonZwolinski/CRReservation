@@ -7,9 +7,13 @@ namespace CRReservation.COMMON.Models
 		public int Id { get; set; }
 		public int ClassRoomId { get; set; }
 		public string ClassRoomName { get; set; } = "Unknown";
-		public DateTime StartDate { get; set; }
-		public DateTime EndDate { get; set; }
-		public string ReservedBy { get; set; }
-		public ReservationStatus Status { get; set; } = ReservationStatus.Pending;
+		public DateTime StartDateTime { get; set; }
+		public DateTime EndDateTime { get; set; }
+		public DateTime ReservationDate { get; set; }
+		public int? GroupId { get; set; }
+		public bool IsRecurring { get; set; }
+		public string ReservedBy { get; set; } = string.Empty;
+		public string Status { get; set; } = "oczekujaca";
 	}
 }
+

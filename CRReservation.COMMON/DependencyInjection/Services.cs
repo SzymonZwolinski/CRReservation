@@ -9,11 +9,9 @@ namespace CRReservation.COMMON.DependencyInjection
 		{
 			services.AddScoped<UserStateService>();
 			services.AddScoped<AuthService>();
-			services.AddScoped(sp => new HttpClient
-			{
-				BaseAddress = new Uri("http://localhost:5000")
-			});
-
+			services.AddScoped<IClassRoomService, ClassRoomService>();
+			// TokenService is registered in the host-specific Program.cs (WEB/MOBILE)
 		}
 	}
 }
+

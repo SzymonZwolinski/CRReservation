@@ -1,23 +1,27 @@
 ﻿@using CRReservation.COMMON.Components.Layout
 @using CRReservation.COMMON.Services
 @using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Authorization
 @inject UserStateService UserStateService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
-<CascadingValue Value="UserStateService.CurrentState" Name="UserState">
-    <Router AppAssembly="@typeof(Routes).Assembly">
-        <Found Context="routeData">
-            <LayoutView Layout="@typeof(MainLayout)">
-                <RouteView RouteData="@routeData"  />
-            </LayoutView>
-        </Found>
-        <NotFound>
-            <PageTitle>Nie znaleziono</PageTitle>
-            <LayoutView Layout="@typeof(MainLayout)">
-                <p role="alert">Fest lipa. Niy mōmy takij strōna.</p>
-            </LayoutView>
-        </NotFound>
-    </Router>
-</CascadingValue>
+<CascadingAuthenticationState>
+    <CascadingValue Value="UserStateService.CurrentState" Name="UserState">
+        <Router AppAssembly="@typeof(Routes).Assembly">
+            <Found Context="routeData">
+                <LayoutView Layout="@typeof(MainLayout)">
+                    <RouteView RouteData="@routeData"  />
+                </LayoutView>
+            </Found>
+            <NotFound>
+                <PageTitle>Nie znaleziono</PageTitle>
+                <LayoutView Layout="@typeof(MainLayout)">
+                    <p role="alert">Fest lipa. Niy mōmy takij strōna.</p>
+                </LayoutView>
+            </NotFound>
+        </Router>
+    </CascadingValue>
+</CascadingAuthenticationState>
 
 @code {
     protected override void OnInitialized()

@@ -8,11 +8,19 @@ public class AuthService
 {
     private readonly HttpClient _httpClient;
     private readonly UserStateService _userStateService;
+    private readonly ITokenService _tokenService;
+    private readonly PersistentAuthenticationStateProvider? _authProvider;
 
-    public AuthService(HttpClient httpClient, UserStateService userStateService)
+    public AuthService(
+        HttpClient httpClient, 
+        UserStateService userStateService, 
+        ITokenService tokenService,
+        PersistentAuthenticationStateProvider? authProvider = null)
     {
         _httpClient = httpClient;
         _userStateService = userStateService;
+        _tokenService = tokenService;
+        _authProvider = authProvider;
     }
 
     public async Task<LoginResponse> LoginAsync(string email, string password)
@@ -33,11 +41,21 @@ public class AuthService
                 if (loginResponse?.Success == true && loginResponse.Token != null)
                 {
                     // Zapisz token w localStorage
-                    await SaveTokenAsync(loginResponse.Token);
+                    await _tokenService.SaveTokenAsync(loginResponse.Token);
 
                     // Ustaw stan użytkownika
                     var role = ParseRole(loginResponse.Role);
                     _userStateService.SetState(true, loginResponse.UserName, role);
+
+                    // Powiadom authentication provider o zalogowaniu
+                    if (_authProvider != null)
+                    {
+                        _authProvider.MarkUserAsAuthenticated(
+                            loginResponse.Token, 
+                            loginResponse.Email, 
+                            loginResponse.UserName, 
+                            loginResponse.Role);
+                    }
 
                     return loginResponse;
                 }
@@ -53,27 +71,18 @@ public class AuthService
 
     public async Task LogoutAsync()
     {
-        await RemoveTokenAsync();
+        await _tokenService.RemoveTokenAsync();
         _userStateService.SetState(false, "", Role.Student);
+        
+        if (_authProvider != null)
+        {
+            _authProvider.MarkUserAsLoggedOut();
+        }
     }
 
     public async Task<string?> GetTokenAsync()
     {
-        // W Blazor można użyć JS interop do localStorage
-        // Na razie zwraca null - trzeba zaimplementować
-        return null;
-    }
-
-    private async Task SaveTokenAsync(string token)
-    {
-        // Implementacja localStorage przez JS interop
-        await Task.CompletedTask;
-    }
-
-    private async Task RemoveTokenAsync()
-    {
-        // Implementacja usunięcia z localStorage
-        await Task.CompletedTask;
+        return await _tokenService.GetTokenAsync();
     }
 
     private Role ParseRole(string roleName)
@@ -107,3 +116,4 @@ public class LoginResponse
     public string Email { get; set; } = string.Empty;
     public DateTime Expiration { get; set; }
 }
+

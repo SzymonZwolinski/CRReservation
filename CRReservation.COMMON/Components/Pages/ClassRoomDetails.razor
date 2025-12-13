@@ -1,4 +1,4 @@
-﻿@page "/classroom/{id}"
+﻿@page "/classroom/{id:int}"
 @using CRReservation.COMMON.Models
 @using CRReservation.COMMON.Components.Prefabs
 @using CRReservation.COMMON.Services
@@ -92,46 +92,76 @@ else
     [CascadingParameter]
     public User UserState { get; set; }
 
-	protected override async Task OnInitializedAsync()
+	protected override async void OnParametersSet()
+	{
+		await LoadClassRoom();
+	}
+
+	private async Task LoadClassRoom()
 	{
 		classRoom = await ClassRoomService.GetClassRoomAsync(Id);
 	}
 
 	public async Task LoadAvailableClassRooms()
 	{
-		availableClassRooms = (await ClassRoomService.GetAvailableClassRoomsAsync(StartDate, EndDate)).ToList();
+		if (StartDate >= EndDate)
+		{
+			ReservationSuccess = false;
+			ReservationMessage = "Data końcowa musi być później niż data początkowa!";
+			return;
+		}
+
+		availableClassRooms = (await ClassRoomService.GetAvailableClassRoomsAsync(StartDate, EndDate.AddDays(1))).ToList();
+		
+		if (!availableClassRooms.Any())
+		{
+			ReservationSuccess = false;
+			ReservationMessage = "Brak dostępnych sal w wybranym terminie.";
+		}
 	}
 
     public async Task ReserveCurrentRoom()
     {
         if (classRoom == null) return;
 
-        if (UserState == null || UserState.Id == 0)
+        if (UserState == null || !UserState.IsLoggedIn)
         {
             ReservationSuccess = false;
             ReservationMessage = "Musisz być zalogowany, aby dokonać rezerwacji.";
             return;
         }
 
-        var reservation = new Reservation
+        try
         {
-            ClassRoomId = Id,
-            StartDateTime = StartDate,
-            EndDateTime = EndDate,
-            UserId = UserState.Id
-        };
+            var reservation = new Reservation
+            {
+                ClassRoomId = classRoom.Id,
+                StartDateTime = StartDate,
+                EndDateTime = EndDate,
+                ReservationDate = DateTime.Now,
+                IsRecurring = false,
+                GroupId = null,
+                ReservedBy = UserState.UserName,
+                Status = "oczekujaca"
+            };
 
-        var result = await ClassRoomService.ReserveClassRoomAsync(reservation);
-        
-        if (result)
-        {
-            ReservationSuccess = true;
-            ReservationMessage = "Rezerwacja zakończona sukcesem! Oczekuje na zatwierdzenie.";
+            var result = await ClassRoomService.ReserveClassRoomAsync(reservation);
+            
+            if (result)
+            {
+                ReservationSuccess = true;
+                ReservationMessage = "Rezerwacja zakończona sukcesem! Oczekuje na zatwierdzenie.";
+            }
+            else
+            {
+                ReservationSuccess = false;
+                ReservationMessage = "Nie udało się dokonać rezerwacji. Sala może być zajęta.";
+            }
         }
-        else
+        catch (Exception ex)
         {
             ReservationSuccess = false;
-            ReservationMessage = "Nie udało się dokonać rezerwacji. Sala może być zajęta.";
+            ReservationMessage = $"Błąd: {ex.Message}";
         }
     }
 

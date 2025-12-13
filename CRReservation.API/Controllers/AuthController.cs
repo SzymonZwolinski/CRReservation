@@ -1,6 +1,7 @@
 using CRReservation.API.DTOs;
 using CRReservation.API.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace CRReservation.API.Controllers;
 
@@ -23,33 +24,103 @@ public class AuthController : ControllerBase
             return BadRequest(new LoginResponse
             {
                 Success = false,
-                Message = "Nieprawidłowe dane logowania"
+                Message = "Email i hasło są wymagane"
+            });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+        {
+            return BadRequest(new LoginResponse
+            {
+                Success = false,
+                Message = "Email i hasło nie mogą być puste"
             });
         }
 
         var response = await _authService.LoginAsync(request);
-        return response;
+        
+        if (!response.Success)
+        {
+            return Unauthorized(response);
+        }
+
+        return Ok(response);
     }
 
     [HttpPost("register")]
     public async Task<ActionResult<LoginResponse>> Register([FromBody] RegisterRequest request)
     {
-        // To będzie wymagało osobnego DTO dla rejestracji
-        // Na razie zwróć NotImplemented
-        return StatusCode(501, new LoginResponse
+        if (!ModelState.IsValid)
         {
-            Success = false,
-            Message = "Rejestracja nie została jeszcze zaimplementowana"
+            return BadRequest(new LoginResponse
+            {
+                Success = false,
+                Message = "Nieprawidłowe dane rejestracji"
+            });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Email) || 
+            string.IsNullOrWhiteSpace(request.Password) ||
+            string.IsNullOrWhiteSpace(request.FirstName))
+        {
+            return BadRequest(new LoginResponse
+            {
+                Success = false,
+                Message = "Email, hasło i imię są wymagane"
+            });
+        }
+
+        var emailValidator = new EmailAddressAttribute();
+        if (!emailValidator.IsValid(request.Email))
+        {
+            return BadRequest(new LoginResponse
+            {
+                Success = false,
+                Message = "Nieprawidłowy format adresu email"
+            });
+        }
+
+        var user = await _authService.RegisterAsync(
+            request.Email, 
+            request.Password, 
+            request.FirstName, 
+            request.LastName ?? "",
+            request.RoleName ?? "student"
+        );
+
+        if (user == null)
+        {
+            return BadRequest(new LoginResponse
+            {
+                Success = false,
+                Message = "Rejestracja nie powiodła się. Użytkownik może już istnieć lub rola nie istnieje."
+            });
+        }
+
+        return StatusCode(201, new LoginResponse
+        {
+            Success = true,
+            Message = "Rejestracja powiodła się. Możesz się teraz zalogować.",
+            Email = user.Email,
+            UserName = $"{user.FirstName} {user.LastName}"
         });
     }
 }
 
-// DTO dla rejestracji (tymczasowo tutaj)
 public class RegisterRequest
 {
+    [Required(ErrorMessage = "Email jest wymagany")]
+    [EmailAddress(ErrorMessage = "Nieprawidłowy format email")]
     public string Email { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Hasło jest wymagane")]
+    [MinLength(6, ErrorMessage = "Hasło musi mieć co najmniej 6 znaków")]
     public string Password { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Imię jest wymagane")]
     public string FirstName { get; set; } = string.Empty;
+
     public string LastName { get; set; } = string.Empty;
-    public string RoleName { get; set; } = string.Empty;
+
+    public string? RoleName { get; set; }
 }

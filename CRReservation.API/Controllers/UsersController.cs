@@ -1,5 +1,6 @@
 using CRReservation.API.Data;
 using CRReservation.API.DTOs;
+using CRReservation.API.Extensions;
 using CRReservation.API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,71 +21,124 @@ public class UsersController : ControllerBase
 
     // GET: api/Users
     [HttpGet]
-    [Authorize(Roles = "admin")]
+    //[Authorize(Roles = "admin")]
     public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
     {
-        var users = await _context.Users.ToListAsync();
-        var roles = await _context.Roles.ToDictionaryAsync(r => r.Name);
+        var users = await _context.Users
+            .Include(u => u.Role)
+            .AsNoTracking()
+            .ToListAsync();
 
-        var userDtos = users.Select(u => new UserDto
-        {
-            Id = u.Id,
-            FirstName = u.FirstName,
-            LastName = u.LastName,
-            Email = u.Email,
-            RoleName = u.RoleName,
-            RoleDescription = roles.ContainsKey(u.RoleName) ? roles[u.RoleName].Description : ""
-        }).ToList();
-
-        return userDtos;
+        var userDtos = users.Select(u => u.ToDto()).ToList();
+        return Ok(userDtos);
     }
 
     // GET: api/Users/5
     [HttpGet("{id}")]
+    //[Authorize]
     public async Task<ActionResult<UserDto>> GetUser(int id)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await _context.Users
+            .Include(u => u.Role)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == id);
+
         if (user == null)
         {
-            return NotFound();
+            return NotFound(new { error = "U¿ytkownik nie istnieje" });
         }
 
-        var role = await _context.Roles.FindAsync(user.RoleName);
-        var userDto = new UserDto
-        {
-            Id = user.Id,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Email = user.Email,
-            RoleName = user.RoleName,
-            RoleDescription = role?.Description ?? ""
-        };
+        return Ok(user.ToDto());
+    }
 
-        return userDto;
+    // GET: api/Users/by-email?email=user@example.com
+    [HttpGet("by-email")]
+    //[Authorize]
+    public async Task<ActionResult<UserDto>> GetUserByEmail([FromQuery] string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return BadRequest(new { error = "Email jest wymagany" });
+        }
+
+        var user = await _context.Users
+            .Include(u => u.Role)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+
+        if (user == null)
+        {
+            return NotFound(new { error = "U¿ytkownik nie istnieje" });
+        }
+
+        return Ok(user.ToDto());
     }
 
     // POST: api/Users
     [HttpPost]
-    [Authorize(Roles = "admin")]
-    public async Task<ActionResult<User>> PostUser(User user)
+    //[Authorize(Roles = "admin")]
+    public async Task<ActionResult<UserDto>> PostUser([FromBody] CreateUserRequest request)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.FirstName))
+        {
+            return BadRequest(new { error = "Email i imiê s¹ wymagane" });
+        }
+
+        var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        if (existingUser != null)
+        {
+            return BadRequest(new { error = "U¿ytkownik z tym emailem ju¿ istnieje" });
+        }
+
+        var user = new User
+        {
+            UserName = request.Email,
+            Email = request.Email,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            RoleName = request.RoleName ?? "student",
+            EmailConfirmed = true
+        };
+
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);
+        return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user.ToDto());
     }
 
     // PUT: api/Users/5
     [HttpPut("{id}")]
-    [Authorize(Roles = "admin")]
-    public async Task<IActionResult> PutUser(int id, User user)
+    //[Authorize(Roles = "admin")]
+    public async Task<IActionResult> PutUser(int id, [FromBody] UpdateUserRequest request)
     {
-        if (id != user.Id)
+        if (!ModelState.IsValid)
         {
-            return BadRequest();
+            return BadRequest(ModelState);
         }
 
-        _context.Entry(user).State = EntityState.Modified;
+        var user = await _context.Users.FindAsync(id);
+        if (user == null)
+        {
+            return NotFound(new { error = "U¿ytkownik nie istnieje" });
+        }
+
+        user.FirstName = request.FirstName ?? user.FirstName;
+        user.LastName = request.LastName ?? user.LastName;
+
+        if (!string.IsNullOrEmpty(request.RoleName))
+        {
+            var roleExists = await _context.Roles.AnyAsync(r => r.Name == request.RoleName);
+            if (!roleExists)
+            {
+                return BadRequest(new { error = "Rola nie istnieje" });
+            }
+            user.RoleName = request.RoleName;
+        }
 
         try
         {
@@ -92,14 +146,7 @@ public class UsersController : ControllerBase
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!UserExists(id))
-            {
-                return NotFound();
-            }
-            else
-            {
-                throw;
-            }
+            throw;
         }
 
         return NoContent();
@@ -107,13 +154,13 @@ public class UsersController : ControllerBase
 
     // DELETE: api/Users/5
     [HttpDelete("{id}")]
-    [Authorize(Roles = "admin")]
+    //[Authorize(Roles = "admin")]
     public async Task<IActionResult> DeleteUser(int id)
     {
         var user = await _context.Users.FindAsync(id);
         if (user == null)
         {
-            return NotFound();
+            return NotFound(new { error = "U¿ytkownik nie istnieje" });
         }
 
         _context.Users.Remove(user);
@@ -121,9 +168,19 @@ public class UsersController : ControllerBase
 
         return NoContent();
     }
+}
 
-    private bool UserExists(int id)
-    {
-        return _context.Users.Any(e => e.Id == id);
-    }
+public class CreateUserRequest
+{
+    public string Email { get; set; } = string.Empty;
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string? RoleName { get; set; }
+}
+
+public class UpdateUserRequest
+{
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? RoleName { get; set; }
 }

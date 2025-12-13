@@ -1,23 +1,32 @@
 ﻿@page "/classrooms"
 @using CRReservation.COMMON.Models
 @using CRReservation.COMMON.Components.Prefabs
+@using CRReservation.COMMON.Services
+@inject IClassRoomService ClassRoomService
 
 <h1>Lista sal:</h1>
-@foreach(var classRoom in classRooms)
-{
-	<ClassRoomCard classRoom="classRoom" />
 
+@if (classRooms == null)
+{
+	<p>Ładowanie sal...</p>
+}
+else if (!classRooms.Any())
+{
+	<p>Brak dostępnych sal.</p>
+}
+else
+{
+	@foreach(var classRoom in classRooms)
+	{
+		<ClassRoomCard classRoom="classRoom" />
+	}
 }
 
 @code {
-	private readonly List<ClassRoom> classRooms;
-	public ClassRooms()
+	private List<ClassRoom>? classRooms;
+
+	protected override async Task OnInitializedAsync()
 	{
-		classRooms = new()
-		{
-			new ClassRoom { Id = 1, Name = "Sala 101", Capacity = 30, Notes = "tes", IsForUse = true  },
-			new ClassRoom { Id = 2, Name = "Sala 202", Capacity = 25, IsForUse = false },
-			new ClassRoom { Id = 3, Name = "Sala 303", Capacity = 20, IsForUse = true }
-		};
+		classRooms = (await ClassRoomService.GetAvailableClassRoomsAsync(DateTime.Today, DateTime.Today.AddDays(365))).ToList();
 	}
 }
