@@ -1,5 +1,6 @@
 using CRReservation.API.Data;
 using CRReservation.API.DTOs;
+using CRReservation.API.Extensions;
 using CRReservation.API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,32 +24,14 @@ public class ReservationsController : ControllerBase
     [Authorize]
     public async Task<ActionResult<IEnumerable<ReservationDto>>> GetReservations()
     {
-        try
-        {
-            var reservations = await _context.Reservations.ToListAsync();
+        var reservations = await _context.Reservations
+            .Include(r => r.ClassRoom)
+            .Include(r => r.User)
+            .Include(r => r.Group)
+            .ToListAsync();
 
-            var reservationDtos = reservations.Select(r => new ReservationDto
-            {
-                Id = r.Id,
-                Status = r.Status,
-                ClassRoomId = r.ClassRoomId,
-                ClassRoomName = "Test", // Uproszczono
-                ReservationDate = r.ReservationDate,
-                GroupId = r.GroupId,
-                GroupName = null, // Uproszczono
-                IsRecurring = r.IsRecurring,
-                StartDateTime = r.StartDateTime,
-                EndDateTime = r.EndDateTime,
-                UserId = r.UserId,
-                UserName = "Test User" // Uproszczono
-            }).ToList();
-
-            return reservationDtos;
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { error = ex.Message });
-        }
+        var reservationDtos = reservations.Select(r => r.ToDto()).ToList();
+        return Ok(reservationDtos);
     }
 
     // GET: api/Reservations/5
@@ -72,38 +55,103 @@ public class ReservationsController : ControllerBase
     // POST: api/Reservations
     [HttpPost]
     [Authorize]
-    public async Task<IActionResult> PostReservation([FromBody] object data)
+    public async Task<ActionResult<ReservationDto>> PostReservation([FromBody] CreateReservationRequest request)
     {
-        return Ok(new { message = "POST działa!" });
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        // Validate dates
+        if (request.StartDateTime >= request.EndDateTime)
+        {
+            return BadRequest(new { error = "Data zakończenia musi być po dacie rozpoczęcia" });
+        }
+
+        // Check if classroom exists
+        var classroom = await _context.ClassRooms.FindAsync(request.ClassRoomId);
+        if (classroom == null)
+        {
+            return NotFound(new { error = "Sala nie istnieje" });
+        }
+
+        // Check if classroom is available
+        var isAvailable = await IsClassRoomAvailableAsync(request.ClassRoomId, request.StartDateTime, request.EndDateTime);
+        if (!isAvailable)
+        {
+            return BadRequest(new { error = "Sala jest zajęta w wybranym terminie" });
+        }
+
+        var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+        if (userId == 0)
+        {
+            return Unauthorized(new { error = "Nie można określić użytkownika" });
+        }
+
+        var reservation = new Reservation
+        {
+            ClassRoomId = request.ClassRoomId,
+            StartDateTime = request.StartDateTime,
+            EndDateTime = request.EndDateTime,
+            GroupId = request.GroupId,
+            IsRecurring = request.IsRecurring,
+            UserId = userId,
+            Status = "oczekujaca",
+            ReservationDate = DateTime.UtcNow
+        };
+
+        _context.Reservations.Add(reservation);
+        await _context.SaveChangesAsync();
+
+        await _context.Entry(reservation)
+            .Reference(r => r.ClassRoom)
+            .LoadAsync();
+        await _context.Entry(reservation)
+            .Reference(r => r.User)
+            .LoadAsync();
+
+        return CreatedAtAction(nameof(GetReservation), new { id = reservation.Id }, reservation.ToDto());
     }
 
     // PUT: api/Reservations/5
     [HttpPut("{id}")]
     [Authorize]
-    public async Task<IActionResult> PutReservation(int id, Reservation reservation)
+    public async Task<IActionResult> PutReservation(int id, [FromBody] UpdateReservationRequest request)
     {
-        if (id != reservation.Id)
+        if (!ModelState.IsValid)
         {
-            return BadRequest();
+            return BadRequest(ModelState);
         }
 
-        _context.Entry(reservation).State = EntityState.Modified;
+        if (request.StartDateTime >= request.EndDateTime)
+        {
+            return BadRequest(new { error = "Data zakończenia musi być po dacie rozpoczęcia" });
+        }
 
-        try
+        var reservation = await _context.Reservations.FindAsync(id);
+        if (reservation == null)
         {
-            await _context.SaveChangesAsync();
+            return NotFound(new { error = "Rezerwacja nie istnieje" });
         }
-        catch (DbUpdateConcurrencyException)
+
+        if (reservation.Status != "oczekujaca")
         {
-            if (!ReservationExists(id))
-            {
-                return NotFound();
-            }
-            else
-            {
-                throw;
-            }
+            return BadRequest(new { error = "Można edytować tylko rezerwacje oczekujące" });
         }
+
+        var isAvailable = await IsClassRoomAvailableAsync(reservation.ClassRoomId, request.StartDateTime, request.EndDateTime, id);
+        if (!isAvailable)
+        {
+            return BadRequest(new { error = "Sala jest zajęta w wybranym terminie" });
+        }
+
+        reservation.StartDateTime = request.StartDateTime;
+        reservation.EndDateTime = request.EndDateTime;
+        reservation.GroupId = request.GroupId;
+        reservation.IsRecurring = request.IsRecurring;
+
+        _context.Reservations.Update(reservation);
+        await _context.SaveChangesAsync();
 
         return NoContent();
     }
@@ -116,7 +164,12 @@ public class ReservationsController : ControllerBase
         var reservation = await _context.Reservations.FindAsync(id);
         if (reservation == null)
         {
-            return NotFound();
+            return NotFound(new { error = "Rezerwacja nie istnieje" });
+        }
+
+        if (reservation.Status != "oczekujaca")
+        {
+            return BadRequest(new { error = "Można usuwać tylko rezerwacje oczekujące" });
         }
 
         _context.Reservations.Remove(reservation);
@@ -136,25 +189,21 @@ public class ReservationsController : ControllerBase
     {
         var query = _context.Reservations.AsQueryable();
 
-        // Filtruj po dacie rozpoczęcia
         if (startDate.HasValue)
         {
             query = query.Where(r => r.StartDateTime.Date >= startDate.Value.Date);
         }
 
-        // Filtruj po dacie zakończenia
         if (endDate.HasValue)
         {
             query = query.Where(r => r.EndDateTime.Date <= endDate.Value.Date);
         }
 
-        // Filtruj po użytkowniku
         if (userId.HasValue)
         {
             query = query.Where(r => r.UserId == userId.Value);
         }
 
-        // Filtruj po statusie
         if (!string.IsNullOrEmpty(status))
         {
             query = query.Where(r => r.Status.ToLower() == status.ToLower());
@@ -166,92 +215,93 @@ public class ReservationsController : ControllerBase
             .Include(r => r.Group)
             .ToListAsync();
 
-        var reservationDtos = reservations.Select(r => new ReservationDto
-        {
-            Id = r.Id,
-            Status = r.Status,
-            ClassRoomId = r.ClassRoomId,
-            ClassRoomName = r.ClassRoom?.Name ?? "Unknown",
-            ReservationDate = r.ReservationDate,
-            GroupId = r.GroupId,
-            GroupName = r.GroupId.HasValue && r.Group != null ? r.Group.Name : null,
-            IsRecurring = r.IsRecurring,
-            StartDateTime = r.StartDateTime,
-            EndDateTime = r.EndDateTime,
-            UserId = r.UserId,
-            UserName = r.User != null ? $"{r.User.FirstName} {r.User.LastName}" : "Unknown"
-        }).ToList();
-
-        return reservationDtos;
+        var reservationDtos = reservations.Select(r => r.ToDto()).ToList();
+        return Ok(reservationDtos);
     }
 
     // PUT: api/Reservations/5/approve
     [HttpPut("{id}/approve")]
-    [Authorize(Policy = "CanApproveReservation")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> ApproveReservation(int id)
     {
         var reservation = await _context.Reservations.FindAsync(id);
         if (reservation == null)
         {
-            return NotFound();
+            return NotFound(new { error = "Rezerwacja nie istnieje" });
+        }
+
+        if (reservation.Status != "oczekujaca")
+        {
+            return BadRequest(new { error = "Można zatwierdzić tylko rezerwacje oczekujące" });
         }
 
         reservation.Status = "potwierdzona";
+        _context.Reservations.Update(reservation);
         await _context.SaveChangesAsync();
-
-        // TODO: Wysłać email powiadomienia do użytkownika
 
         return NoContent();
     }
 
     // PUT: api/Reservations/5/reject
     [HttpPut("{id}/reject")]
-    [Authorize(Policy = "CanApproveReservation")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> RejectReservation(int id)
     {
         var reservation = await _context.Reservations.FindAsync(id);
         if (reservation == null)
         {
-            return NotFound();
+            return NotFound(new { error = "Rezerwacja nie istnieje" });
+        }
+
+        if (reservation.Status != "oczekujaca")
+        {
+            return BadRequest(new { error = "Można odrzucić tylko rezerwacje oczekujące" });
         }
 
         reservation.Status = "odrzucona";
+        _context.Reservations.Update(reservation);
         await _context.SaveChangesAsync();
-
-        // TODO: Wysłać email powiadomienia do użytkownika
 
         return NoContent();
     }
 
     // PUT: api/Reservations/5/revoke
     [HttpPut("{id}/revoke")]
-    [Authorize(Policy = "CanApproveReservation")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> RevokeReservation(int id)
     {
         var reservation = await _context.Reservations.FindAsync(id);
         if (reservation == null)
         {
-            return NotFound();
+            return NotFound(new { error = "Rezerwacja nie istnieje" });
+        }
+
+        if (reservation.Status == "anulowana")
+        {
+            return BadRequest(new { error = "Rezerwacja jest już anulowana" });
         }
 
         reservation.Status = "anulowana";
+        _context.Reservations.Update(reservation);
         await _context.SaveChangesAsync();
-
-        // TODO: Wysłać email powiadomienia do użytkownika
 
         return NoContent();
     }
 
-    private async Task<bool> IsClassRoomAvailable(int classRoomId, DateTime start, DateTime end)
+    private async Task<bool> IsClassRoomAvailableAsync(int classRoomId, DateTime start, DateTime end, int? excludeReservationId = null)
     {
-        // Sprawdź czy są konflikty z istniejącymi rezerwacjami
-        var conflictingReservations = await _context.Reservations
+        var query = _context.Reservations
             .Where(r => r.ClassRoomId == classRoomId)
             .Where(r => r.Status == "potwierdzona" || r.Status == "oczekujaca")
-            .Where(r => r.StartDateTime < end && r.EndDateTime > start)
-            .AnyAsync();
+            .Where(r => r.StartDateTime < end && r.EndDateTime > start);
 
-        return !conflictingReservations;
+        if (excludeReservationId.HasValue)
+        {
+            query = query.Where(r => r.Id != excludeReservationId.Value);
+        }
+
+        var hasConflict = await query.AnyAsync();
+        return !hasConflict;
     }
 
     private bool ReservationExists(int id)

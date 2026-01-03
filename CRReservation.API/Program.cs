@@ -63,23 +63,23 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Add Authorization with policies
+//Add Authorization with policies
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("RequireAdministratorRole", policy =>
         policy.RequireRole("admin"));
-    options.AddPolicy("RequireLecturerRole", policy =>
-        policy.RequireRole("prowadzacy"));
-    options.AddPolicy("RequireStudentRole", policy =>
-        policy.RequireRole("student"));
+options.AddPolicy("RequireLecturerRole", policy =>
+    policy.RequireRole("prowadzacy"));
+options.AddPolicy("RequireStudentRole", policy =>
+    policy.RequireRole("student"));
 
-    // Custom policies for reservations
-    options.AddPolicy("CanCreateReservation", policy =>
-        policy.RequireRole("student", "prowadzacy", "admin"));
-    options.AddPolicy("CanApproveReservation", policy =>
-        policy.RequireRole("admin"));
-    options.AddPolicy("CanManageRooms", policy =>
-        policy.RequireRole("admin"));
+// Custom policies for reservations
+options.AddPolicy("CanCreateReservation", policy =>
+    policy.RequireRole("student", "prowadzacy", "admin"));
+options.AddPolicy("CanApproveReservation", policy =>
+    policy.RequireRole("admin"));
+options.AddPolicy("CanManageRooms", policy =>
+    policy.RequireRole("admin"));
 });
 
 // Register services
@@ -89,6 +89,31 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddControllers();
 
 var app = builder.Build();
+
+// Configure CORS
+if (app.Environment.IsDevelopment())
+{
+    // Development: Allow any origin without credentials
+    app.UseCors(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+}
+else
+{
+    // Production: Use specific allowed origins
+    app.UseCors(policy =>
+    {
+        policy.WithOrigins(
+            builder.Configuration["Cors:AllowedOrigins"]?.Split(";")
+        )
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

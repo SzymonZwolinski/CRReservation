@@ -5,7 +5,7 @@
 		public int Id { get; set; }
 		public string Name { get; set; }
 		public int Capacity { get; set; }
-		public bool IsForUse { get; set; }
+		public bool IsActive { get; set; }
 		public string? Notes { get; set; }
 
         public ClassRoom(){}
@@ -14,13 +14,13 @@
 			int id,
 			string name,
 			int capacity,
-			bool isForUse,
+			bool isActive,
 			string? notes)
 		{
 			Id = id;
 			Name = name;
 			Capacity = capacity;
-			IsForUse = isForUse;
+			IsActive = isActive;
 			Notes = notes;
 		}
 	}
