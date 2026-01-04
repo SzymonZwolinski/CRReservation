@@ -1,0 +1,118 @@
+﻿@page "/admin/users/create"
+@page "/admin/users/edit/{Id:int}"
+@using CRReservation.COMMON.Models
+@using CRReservation.COMMON.Services
+@using Microsoft.AspNetCore.Authorization
+@inject IUserService UserService
+@inject NavigationManager Navigation
+@attribute [Authorize(Roles = "Administrator")]
+
+<h3>@(Id.HasValue ? "Edycja Użytkownika" : "Dodaj Użytkownika")</h3>
+
+<EditForm Model="@userModel" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        @if (Id.HasValue)
+        {
+            <InputText id="email" class="form-control" @bind-Value="userModel.Email" readonly disabled />
+        }
+        else
+        {
+            <InputText id="email" class="form-control" @bind-Value="userModel.Email" />
+        }
+    </div>
+
+    <div class="mb-3">
+        <label for="firstName" class="form-label">Imię</label>
+        <InputText id="firstName" class="form-control" @bind-Value="userModel.FirstName" />
+    </div>
+
+    <div class="mb-3">
+        <label for="lastName" class="form-label">Nazwisko</label>
+        <InputText id="lastName" class="form-control" @bind-Value="userModel.LastName" />
+    </div>
+
+    <div class="mb-3">
+        <label for="role" class="form-label">Rola</label>
+        <InputSelect id="role" class="form-select" @bind-Value="userModel.RoleName">
+            <option value="student">Student</option>
+            <option value="prowadzący">Prowadzący</option>
+            <option value="administrator">Administrator</option>
+        </InputSelect>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Zapisz</button>
+    <button type="button" class="btn btn-secondary" @onclick="Cancel">Anuluj</button>
+</EditForm>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private UserModel userModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id.HasValue)
+        {
+            var user = await UserService.GetUserAsync(Id.Value);
+            if (user != null)
+            {
+                userModel = new UserModel
+                    {
+                        Email = user.Email,
+                        FirstName = user.FirstName,
+                        LastName = user.LastName,
+                        RoleName = user.RoleName
+                    };
+            }
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (Id.HasValue)
+        {
+            var request = new UpdateUserRequest
+                {
+                    FirstName = userModel.FirstName,
+                    LastName = userModel.LastName,
+                    RoleName = userModel.RoleName
+                };
+            if (await UserService.UpdateUserAsync(Id.Value, request))
+            {
+                Navigation.NavigateTo("/admin/users");
+            }
+        }
+        else
+        {
+            var request = new CreateUserRequest
+                {
+                    Email = userModel.Email,
+                    FirstName = userModel.FirstName,
+                    LastName = userModel.LastName,
+                    RoleName = userModel.RoleName
+                };
+            if (await UserService.CreateUserAsync(request) != null)
+            {
+                Navigation.NavigateTo("/admin/users");
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/admin/users");
+    }
+
+    public class UserModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string RoleName { get; set; } = "student";
+    }
+}

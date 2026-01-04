@@ -1,0 +1,114 @@
+﻿@page "/admin/reservations"
+@using CRReservation.COMMON.Models
+@using CRReservation.COMMON.Services
+@using Microsoft.AspNetCore.Authorization
+@inject IReservationService ReservationService
+@inject NavigationManager Navigation
+@attribute [Authorize(Roles = "Administrator")]
+
+<h3>Zarządzanie Rezerwacjami</h3>
+
+<div class="mb-3">
+    <label class="form-label">Filtruj status:</label>
+    <select class="form-select" @onchange="FilterByStatus">
+        <option value="">Wszystkie</option>
+        <option value="oczekujaca">Oczekujące</option>
+        <option value="potwierdzona">Potwierdzone</option>
+        <option value="odrzucona">Odrzucone</option>
+        <option value="anulowana">Anulowane</option>
+    </select>
+</div>
+
+@if (reservations == null)
+{
+    <p><em>Ładowanie...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Sala</th>
+                <th>Użytkownik</th>
+                <th>Start</th>
+                <th>Koniec</th>
+                <th>Status</th>
+                <th>Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var res in reservations)
+            {
+                <tr>
+                    <td>@res.ClassRoomName</td>
+                    <td>@res.UserName</td>
+                    <td>@res.StartDateTime.ToString("g")</td>
+                    <td>@res.EndDateTime.ToString("g")</td>
+                    <td>
+                        <span class="badge @GetStatusBadge(res.Status)">@res.Status</span>
+                    </td>
+                    <td>
+                        @if (res.Status == "oczekujaca")
+                        {
+                            <button class="btn btn-sm btn-success" @onclick="() => Approve(res.Id)">Zatwierdź</button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => Reject(res.Id)">Odrzuć</button>
+                        }
+                        @if (res.Status == "potwierdzona")
+                        {
+                            <button class="btn btn-sm btn-warning" @onclick="() => Revoke(res.Id)">Odwołaj</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IEnumerable<ReservationDto>? reservations;
+    private string? currentStatus = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReservations();
+    }
+
+    private async Task LoadReservations()
+    {
+        reservations = await ReservationService.GetFilteredReservationsAsync(status: currentStatus);
+    }
+
+    private async Task FilterByStatus(ChangeEventArgs e)
+    {
+        currentStatus = e.Value?.ToString();
+        if (string.IsNullOrEmpty(currentStatus)) currentStatus = null;
+        await LoadReservations();
+    }
+
+    private async Task Approve(int id)
+    {
+        if (await ReservationService.ApproveReservationAsync(id))
+            await LoadReservations();
+    }
+
+    private async Task Reject(int id)
+    {
+        if (await ReservationService.RejectReservationAsync(id))
+            await LoadReservations();
+    }
+
+    private async Task Revoke(int id)
+    {
+        if (await ReservationService.RevokeReservationAsync(id))
+            await LoadReservations();
+    }
+
+    private string GetStatusBadge(string status) => status switch
+    {
+        "potwierdzona" => "bg-success",
+        "oczekujaca" => "bg-warning",
+        "odrzucona" => "bg-danger",
+        "anulowana" => "bg-secondary",
+        _ => "bg-info"
+    };
+}

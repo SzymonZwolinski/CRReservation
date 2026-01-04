@@ -1,0 +1,75 @@
+﻿@page "/admin/rooms/create"
+@page "/admin/rooms/edit/{Id:int}"
+@using CRReservation.COMMON.Models
+@using CRReservation.COMMON.Services
+@using Microsoft.AspNetCore.Authorization
+@inject IClassRoomService ClassRoomService
+@inject NavigationManager Navigation
+@attribute [Authorize(Roles = "Administrator")]
+
+<h3>@(Id.HasValue ? "Edycja Sali" : "Dodaj Salę")</h3>
+
+<EditForm Model="@roomModel" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label for="name" class="form-label">Nazwa Sali</label>
+        <InputText id="name" class="form-control" @bind-Value="roomModel.Name" />
+    </div>
+
+    <div class="mb-3">
+        <label for="capacity" class="form-label">Pojemność</label>
+        <InputNumber id="capacity" class="form-control" @bind-Value="roomModel.Capacity" />
+    </div>
+
+    <div class="mb-3">
+        <label for="notes" class="form-label">Uwagi</label>
+        <InputTextArea id="notes" class="form-control" @bind-Value="roomModel.Notes" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Zapisz</button>
+    <button type="button" class="btn btn-secondary" @onclick="Cancel">Anuluj</button>
+</EditForm>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private ClassRoom roomModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id.HasValue)
+        {
+            var room = await ClassRoomService.GetClassRoomAsync(Id.Value);
+            if (room != null)
+            {
+                roomModel = room;
+            }
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (Id.HasValue)
+        {
+            if (await ClassRoomService.UpdateClassRoomAsync(Id.Value, roomModel))
+            {
+                Navigation.NavigateTo("/admin/rooms");
+            }
+        }
+        else
+        {
+            if (await ClassRoomService.AddClassRoomAsync(roomModel) != null)
+            {
+                Navigation.NavigateTo("/admin/rooms");
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/admin/rooms");
+    }
+}

@@ -1,0 +1,77 @@
+﻿@page "/admin/rooms"
+@using CRReservation.COMMON.Models
+@using CRReservation.COMMON.Services
+@using Microsoft.AspNetCore.Authorization
+@inject IClassRoomService ClassRoomService
+@inject NavigationManager Navigation
+@attribute [Authorize(Roles = "Administrator")]
+
+<h3>Zarządzanie Salami</h3>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="CreateRoom">Dodaj Salę</button>
+</div>
+
+@if (rooms == null)
+{
+    <p><em>Ładowanie...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Nazwa</th>
+                <th>Pojemność</th>
+                <th>Status</th>
+                <th>Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var room in rooms)
+            {
+                <tr>
+                    <td>@room.Name</td>
+                    <td>@room.Capacity</td>
+                    <td>@(room.IsActive ? "Aktywna" : "Nieaktywna")</td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary" @onclick="() => EditRoom(room.Id)">Edytuj</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteRoom(room.Id)">Usuń</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IEnumerable<ClassRoom>? rooms;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRooms();
+    }
+
+    private async Task LoadRooms()
+    {
+        rooms = await ClassRoomService.GetAllClassRoomsAsync();
+    }
+
+    private void CreateRoom()
+    {
+        Navigation.NavigateTo("/admin/rooms/create");
+    }
+
+    private void EditRoom(int id)
+    {
+        Navigation.NavigateTo($"/admin/rooms/edit/{id}");
+    }
+
+    private async Task DeleteRoom(int id)
+    {
+        if (await ClassRoomService.DeleteClassRoomAsync(id))
+        {
+            await LoadRooms();
+        }
+    }
+}

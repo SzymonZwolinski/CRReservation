@@ -12,8 +12,8 @@ public class AuthService
     private readonly PersistentAuthenticationStateProvider? _authProvider;
 
     public AuthService(
-        HttpClient httpClient, 
-        UserStateService userStateService, 
+        HttpClient httpClient,
+        UserStateService userStateService,
         ITokenService tokenService,
         PersistentAuthenticationStateProvider? authProvider = null)
     {
@@ -51,9 +51,9 @@ public class AuthService
                     if (_authProvider != null)
                     {
                         _authProvider.MarkUserAsAuthenticated(
-                            loginResponse.Token, 
-                            loginResponse.Email, 
-                            loginResponse.UserName, 
+                            loginResponse.Token,
+                            loginResponse.Email,
+                            loginResponse.UserName,
                             loginResponse.Role);
                     }
 
@@ -73,7 +73,7 @@ public class AuthService
     {
         await _tokenService.RemoveTokenAsync();
         _userStateService.SetState(false, "", Role.Student);
-        
+
         if (_authProvider != null)
         {
             _authProvider.MarkUserAsLoggedOut();
@@ -83,6 +83,36 @@ public class AuthService
     public async Task<string?> GetTokenAsync()
     {
         return await _tokenService.GetTokenAsync();
+    }
+
+    public async Task<LoginResponse> RegisterAsync(string email, string password, string firstName, string lastName, string roleName)
+    {
+        try
+        {
+            var registerRequest = new RegisterRequest
+            {
+                Email = email,
+                Password = password,
+                FirstName = firstName,
+                LastName = lastName,
+                RoleName = roleName
+            };
+
+            var response = await _httpClient.PostAsJsonAsync("api/auth/register", registerRequest);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<LoginResponse>()
+                       ?? new LoginResponse { Success = false, Message = "Błąd deserializacji odpowiedzi" };
+            }
+
+            var errorResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
+            return errorResponse ?? new LoginResponse { Success = false, Message = "Błąd rejestracji" };
+        }
+        catch (Exception ex)
+        {
+            return new LoginResponse { Success = false, Message = $"Błąd: {ex.Message}" };
+        }
     }
 
     private Role ParseRole(string roleName)
@@ -115,5 +145,14 @@ public class LoginResponse
     public string UserName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public DateTime Expiration { get; set; }
+}
+
+public class RegisterRequest
+{
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string? RoleName { get; set; }
 }
 

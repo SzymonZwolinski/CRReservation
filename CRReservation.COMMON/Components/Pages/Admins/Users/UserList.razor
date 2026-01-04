@@ -1,0 +1,79 @@
+﻿@page "/admin/users"
+@using CRReservation.COMMON.Models
+@using CRReservation.COMMON.Services
+@using Microsoft.AspNetCore.Authorization
+@inject IUserService UserService
+@inject NavigationManager Navigation
+@attribute [Authorize(Roles = "Administrator")]
+
+<h3>Zarządzanie Użytkownikami</h3>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="CreateUser">Dodaj Użytkownika</button>
+</div>
+
+@if (users == null)
+{
+    <p><em>Ładowanie...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Imię</th>
+                <th>Nazwisko</th>
+                <th>Email</th>
+                <th>Rola</th>
+                <th>Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in users)
+            {
+                <tr>
+                    <td>@user.FirstName</td>
+                    <td>@user.LastName</td>
+                    <td>@user.Email</td>
+                    <td>@user.RoleName</td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary" @onclick="() => EditUser(user.Id)">Edytuj</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteUser(user.Id)">Usuń</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IEnumerable<UserDto>? users;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        users = await UserService.GetUsersAsync();
+    }
+
+    private void CreateUser()
+    {
+        Navigation.NavigateTo("/admin/users/create");
+    }
+
+    private void EditUser(int id)
+    {
+        Navigation.NavigateTo($"/admin/users/edit/{id}");
+    }
+
+    private async Task DeleteUser(int id)
+    {
+        if (await UserService.DeleteUserAsync(id))
+        {
+            await LoadUsers();
+        }
+    }
+}
